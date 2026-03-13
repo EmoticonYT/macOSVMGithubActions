@@ -1,0 +1,44 @@
+name: macOS noVNC (Cloudflare)
+on: workflow_dispatch
+
+jobs:
+  desktop:
+    runs-on: macos-latest
+    steps:
+      - name: Configure macOS VNC Server
+        run: |
+          # Set VNC password to 'password123'
+          sudo /System/Library/CoreServices/RemoteManagement/ARDAgent.app/Contents/Resources/kickstart \
+            -activate -configure -access -on \
+            -clientopts -setvncpasswd -vncpasswd password123 \
+            -restart -agent -privs -all
+
+      - name: Install noVNC and Cloudflared
+        run: |
+          # Install Cloudflared
+          brew install cloudflare/cloudflare/cloudflared
+          
+          # Clone noVNC and its proxy tool
+          git clone https://github.com
+          git clone https://github.com noVNC/utils/websockify
+
+      - name: Start noVNC and Cloudflare Tunnel
+        run: |
+          # 1. Start the noVNC proxy (Listen on 6080, forward to macOS VNC 5900)
+          ./noVNC/utils/novnc_proxy --vnc localhost:5900 --listen 6080 &
+          
+          # 2. Start Cloudflare tunnel for the noVNC port
+          # This will output the URL to 'cf.log'
+          cloudflared tunnel --url http://localhost:6080 > cf.log 2>&1 &
+          
+          # 3. Wait a moment for the tunnel to generate the URL
+          sleep 10
+          
+          # 4. Extract and print the public URL from the log
+          echo "--- YOUR VNC URL IS BELOW ---"
+          grep -o 'https://[-a-zA-Z0-9.]*\.trycloudflare\.com' cf.log | head -n 1
+          echo "----------------------------"
+          echo "Password: password123"
+
+      - name: Keep Alive
+        run: sleep 21600 # VM stays open for 6 hours or until manual cancel
