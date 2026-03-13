@@ -19,8 +19,8 @@ jobs:
           brew install cloudflare/cloudflare/cloudflared
           
           # Clone noVNC and its proxy tool
-          git clone https://github.com
-          git clone https://github.com noVNC/utils/websockify
+          git clone https://github.com/novnc/noVNC.git
+          git clone https://github.com/novnc/websockify.git
 
       - name: Start noVNC and Cloudflare Tunnel
         run: |
